@@ -33,7 +33,7 @@ Surgio 还包括了一个实用工具 —— 上传到阿里云 OSS，能够快�
 - 读取机场的订阅地址
 - 同时生成针对不同客户端的配置
 - 同样的规则可写成「可复用片段」，减少重复劳作
-- 读取符合 Surge Rule Set 规范的远程片段
+- 读取符合 Surge Ruleset 规范的远程片段
 - 让 Surge 能够订阅 V2Ray 和 SSR
 
 ## 劝退
@@ -47,5 +47,15 @@ Surgio 还包括了一个实用工具 —— 上传到阿里云 OSS，能够快�
 Surgio 现在不会将来也不会记录或上报你使用的节点或订阅信息。
 
 ## 支持开发
+
+感谢 Surgio 的支持者们！
+
+<a href="https://opencollective.com/surgio"><img src="https://opencollective.com/surgio/contributors.svg?width=890" /></a>
+
+<p>
+  <a href="https://opencollective.com/surgio/donate" target="_blank">
+    <img src="https://opencollective.com/surgio/donate/button@2x.png?color=blue" width=300 />
+  </a>
+</p>
 
 <img src="/support.jpg" style="padding-top:20px;" width=300>

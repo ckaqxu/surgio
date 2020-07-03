@@ -12,12 +12,12 @@ sidebarDepth: 2
 [点我下载](https://raw.githubusercontent.com/geekdada/surgio/gh-pages/ssr-local)  
 MD5: `c9a1535f2ffd82100631d333efa40963`
 
-:::tip
+:::tip 提示
 建议放置在 `/usr/local/bin/ssr-local`
 :::
 
 **你也可以直接运行命令**
 
 ```bash
-curl https://raw.githubusercontent.com/geekdada/surgio/gh-pages/ssr-local -o /usr/local/bin/ssr-local
+curl https://raw.githubusercontent.com/geekdada/surgio/gh-pages/ssr-local -o /usr/local/bin/ssr-local && chmod +x /usr/local/bin/ssr-local
 ```

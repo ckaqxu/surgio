@@ -15,6 +15,7 @@ module.exports = {
       obfs: 'tls',
       'obfs-host': 'gateway-carry.icloud.com',
       tfo: true,
+      mptcp: true,
     },
     {
       type: 'snell',
@@ -26,11 +27,26 @@ module.exports = {
     },
     {
       type: 'https',
-      nodeName: 'HTTPS',
+      nodeName: 'rename to HTTPS',
       hostname: 'us.example.com',
       port: '443',
       username: 'username',
       password: 'password',
+      tfo: true,
+      tls13: true,
     },
+    {
+      type: 'trojan',
+      nodeName: 'trojan node',
+      hostname: 'trojan.example.com',
+      port: '443',
+      password: 'password',
+    }
   ],
+  renameNode: name => {
+    if (name === 'rename to HTTPS') {
+      return 'HTTPS';
+    }
+    return name;
+  },
 };

@@ -18,14 +18,17 @@ class GenerateCommand extends Command {
     this.usage = '使用方法: surgio upload';
     this.spinner = ora();
     this.options = {
-      output: {
+      o: {
         type: 'string',
-        alias: 'o',
+        alias: 'output',
         description: '生成规则的目录',
       },
-      config: {
-        alias: 'c',
+      c: {
+        alias: 'config',
+        demandOption: false,
+        describe: 'Surgio 配置文件',
         default: './surgio.conf.js',
+        type: 'string',
       },
     };
   }
@@ -38,16 +41,16 @@ class GenerateCommand extends Command {
     });
 
     const ossConfig = {
-      region: config.upload.region || 'oss-cn-hangzhou',
-      bucket: config.upload.bucket,
-      accessKeyId: ctx.env.OSS_ACCESS_KEY_ID || config.upload.accessKeyId,
-      accessKeySecret: ctx.env.OSS_ACCESS_KEY_SECRET || config.upload.accessKeySecret,
+      region: config?.upload?.region || 'oss-cn-hangzhou',
+      bucket: config?.upload?.bucket,
+      accessKeyId: ctx.env.OSS_ACCESS_KEY_ID || config?.upload?.accessKeyId,
+      accessKeySecret: ctx.env.OSS_ACCESS_KEY_SECRET || config?.upload?.accessKeySecret,
     };
     const client = new OSS({
       secure: true,
       ...ossConfig,
     });
-    const prefix = config.upload.prefix || '/';
+    const prefix = config?.upload?.prefix || '/';
     const fileList = await dir.promiseFiles(config.output);
     const files = fileList.map(filePath => ({
       fileName: path.basename(filePath),
@@ -74,7 +77,7 @@ class GenerateCommand extends Command {
         prefix,
         delimiter: '/',
       });
-      const deleteList = [];
+      const deleteList: string[] = [];
 
       for (const key in list.objects) {
         if (list.objects.hasOwnProperty(key)) {

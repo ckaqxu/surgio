@@ -1,4 +1,3 @@
-// tslint:disable:no-expression-statement
 import test from 'ava';
 import coffee from 'coffee';
 import path from 'path';
@@ -9,14 +8,29 @@ const cli = path.join(__dirname, '../bin/surgio.js');
 const fixture = path.join(__dirname, './fixture');
 const resolve = p => path.join(fixture, p);
 
-test('cli works', async t => {
-  const { code } = await coffee.fork(cli, ['generate'], {
+test.serial('doctor command', async t => {
+  await t.notThrowsAsync(async () => {
+    await coffee.fork(cli, ['doctor'], {
+      cwd: resolve('plain'),
+    })
+      .expect('code', 0)
+      .end();
+  });
+});
+
+test.serial('cli works', async t => {
+  await coffee.fork(cli, ['generate', '-h'], {
+    cwd: resolve('plain'),
+  })
+    .expect('code', 0)
+    .end();
+
+  await coffee.fork(cli, ['generate'], {
     cwd: resolve('plain'),
     execArgv: ['--require', require.resolve('./stub-axios.js')],
   })
+    .expect('code', 0)
     .end();
-
-  t.is(code, 0);
 
   const confString1 = fs.readFileSync(resolve('plain/dist/ss_json.conf'), {
     encoding: 'utf8',
@@ -27,8 +41,12 @@ test('cli works', async t => {
   const confString3 = fs.readFileSync(resolve('plain/dist/template-functions.conf'), {
     encoding: 'utf8',
   });
+  const confString5 = fs.readFileSync(resolve('plain/dist/v2rayn.conf'), {
+    encoding: 'utf8',
+  });
   const conf = ini.decode(confString1);
 
+  t.truthy(fs.existsSync(resolve('plain/dist/new_path.conf')));
   t.truthy(fs.existsSync(resolve('plain/dist/ss.conf')));
   t.truthy(fs.existsSync(resolve('plain/dist/ssr.conf')));
   t.truthy(fs.existsSync(resolve('plain/dist/v2rayn.conf')));
@@ -37,9 +55,22 @@ test('cli works', async t => {
   t.true(confString2.includes('select, 🇺🇲 US'));
   t.is(Object.keys(conf.Proxy).length, 4);
   t.snapshot(confString3);
+  t.snapshot(confString5);
 });
 
-test('template error', async t => {
+test.serial('--skip-fail should work', async t => {
+  await t.notThrowsAsync(async () => {
+    await coffee.fork(cli, ['generate', '--skip-fail'], {
+      cwd: resolve('plain'),
+      execArgv: ['--require', require.resolve('./stub-axios.js')],
+    })
+      .debug()
+      .expect('code', 0)
+      .end();
+  });
+});
+
+test.serial('template error', async t => {
   const { code } = await coffee.fork(cli, ['generate'], {
     cwd: resolve('template-error'),
     execArgv: ['--require', require.resolve('./stub-axios.js')],
@@ -49,7 +80,7 @@ test('template error', async t => {
   t.is(code, 1);
 });
 
-test('not specify binPath', async t => {
+test.serial('not specify binPath', async t => {
   const { stderr, code } = await coffee.fork(cli, ['generate'], {
     cwd: resolve('not-specify-binPath'),
     execArgv: ['--require', require.resolve('./stub-axios.js')],
@@ -57,10 +88,10 @@ test('not specify binPath', async t => {
     .end();
 
   t.is(code, 1);
-  t.truthy(stderr.includes('You must specify a binary file path for Shadowsocksr'));
+  t.truthy(stderr.includes('请按照文档 https://bit.ly/2WnHB3p 添加 Shadowsocksr 二进制文件路径'));
 });
 
-test('template variables and functions', async t => {
+test.serial('template variables and functions', async t => {
   const { code } = await coffee.fork(cli, ['generate'], {
     cwd: resolve('template-variables-functions'),
     execArgv: ['--require', require.resolve('./stub-axios.js')],
@@ -79,13 +110,13 @@ test('template variables and functions', async t => {
     'DOMAIN-SUFFIX,nflximg.net,Proxy\n' +
     'DOMAIN-SUFFIX,nflxso.net,Proxy\n' +
     'DOMAIN-SUFFIX,nflxvideo.net,Proxy\n' +
-    'https://example.com/ss.conf\n';
+    'http://example.com/ss.conf\n';
 
   t.is(code, 0);
   t.is(confString, result);
 });
 
-test('assign local port', async t => {
+test.serial('assign local port', async t => {
   const { code } = await coffee.fork(cli, ['generate'], {
     cwd: resolve('assign-local-port'),
     execArgv: ['--require', require.resolve('./stub-axios.js')],
@@ -106,17 +137,76 @@ test('assign local port', async t => {
   t.truthy(conf2.Proxy['测试 2'].includes('local-port = 4001'));
 });
 
-test('custom filter', async t => {
+test.serial('custom filter', async t => {
   const { code } = await coffee.fork(cli, ['generate'], {
     cwd: resolve('custom-filter'),
     execArgv: ['--require', require.resolve('./stub-axios.js')],
   })
+    .debug()
     .end();
-  const confString = fs.readFileSync(resolve('custom-filter/dist/ss.conf'), {
+  const confString1 = fs.readFileSync(resolve('custom-filter/dist/ss.conf'), {
     encoding: 'utf8',
   });
-  const conf = ini.decode(confString);
+  const confString2 = fs.readFileSync(resolve('custom-filter/dist/test_sorted_filter.conf'), {
+    encoding: 'utf8',
+  });
 
-  t.is(conf['Proxy Group']['Proxy 1'], 'select, 🇺🇸US 1, 🇺🇸US 2');
-  t.is(conf['Proxy Group']['Proxy 2'], 'select,');
+  t.snapshot(confString1);
+  t.snapshot(confString2);
+});
+
+test.serial('new command', async t => {
+  await coffee.fork(cli, ['new', '-h'], {
+    cwd: resolve('plain'),
+  })
+    .expect('code', 0)
+    .end();
+
+  t.pass();
+});
+
+test.serial('subscriptions command', async t => {
+  await coffee.fork(cli, ['subscriptions', '-h'], {
+    cwd: resolve('plain'),
+  })
+    .expect('code', 0)
+    .end();
+
+  t.pass();
+});
+
+test.serial('check command', async t => {
+  await coffee.fork(cli, ['check', 'custom'], {
+    cwd: resolve('plain'),
+  })
+    .expect('code', 0)
+    .debug()
+    .end();
+
+  t.pass();
+});
+
+test.serial('v2ray tls options', async t => {
+  process.env.TEST_TLS13_ENABLE = 'true';
+  process.env.TEST_SKIP_CERT_VERIFY_ENABLE = 'true';
+
+  await coffee.fork(cli, ['generate'], {
+    cwd: resolve('plain'),
+    execArgv: ['--require', require.resolve('./stub-axios.js')],
+  })
+    .expect('code', 0)
+    .end();
+
+  const confString1 = fs.readFileSync(resolve('plain/dist/v2rayn.conf'), {
+    encoding: 'utf8',
+  });
+  const confString2 = fs.readFileSync(resolve('plain/dist/clash_mod.conf'), {
+    encoding: 'utf8',
+  });
+
+  t.snapshot(confString1);
+  t.snapshot(confString2);
+
+  process.env.TEST_TLS13_ENABLE = undefined;
+  process.env.TEST_SKIP_CERT_VERIFY_ENABLE = undefined;
 });

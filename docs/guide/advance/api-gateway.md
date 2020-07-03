@@ -9,13 +9,27 @@ sidebarDepth: 1
 本文亦发布于我的个人博客 [blog.dada.li](https://blog.dada.li/2019/surgio-api-gateway)
 :::
 
+[[toc]]
+
 ## 前言
 
 相信很多人都用过网络上处理规则的 API 接口，也有人在使用过 Surgio 后觉得更新规则不太灵活。虽然我们已经能够通过自动化的方法每隔一段时间更新一次规则，但还是无法做到实时更新。这篇文章就是想教大家，利用现成的 SAAS(Software as a Service) 服务，来实现一个 Surgio 规则仓库的 API。
 
 ## 简述实现
 
-目前 Surgio 支持两个部署平台，阿里云函数服务和 zeit 的 now.sh。他们各自有各自的优缺点，由各位定夺使用谁（无法同时使用）。
+目前 Surgio 支持两个部署平台，阿里云函数服务和 Vercel。他们各自有各自的优缺点，由各位定夺使用谁（无法同时使用）。
+
+### Vercel <Badge text="推荐" vertical="middle" />
+
+优点：
+
+- 管理简单
+- 有免费额度（几乎不可能用完）
+- 有香港边缘服务器节点（源站位于美国）
+
+缺点：
+
+- 英文界面、文档
 
 ### 阿里云函数
 
@@ -28,24 +42,12 @@ sidebarDepth: 1
 
 - 管理复杂（文档很多很杂）
 
-### now.sh <Badge text="推荐" vertical="middle" />
-
-优点：
-
-- 管理简单
-- 按量付费
-- 有香港边缘服务器节点（源站位于美国）
-
-缺点：
-
-- 有免费额度但是源码公开
-
-## 部署 - now.sh <Badge text="推荐" vertical="middle" />
+## 部署 - Vercel <Badge text="推荐" vertical="middle" />
 
 ### 准备
 
-1. 注册一个 [now.sh](https://now.sh) 账号
-2. 按量付费需要绑定信用卡（必须）
+1. 注册一个 [Vercel](https://vercel.com) 账号
+2. 可以不绑定付款方式
 
 ### 配置
 
@@ -65,12 +67,11 @@ $ now login
 
 ```json
 {
-  "name": "<输入服务名 (例如 surgio-api)>",
   "version": 2,
   "public": false,
   "builds": [
     { 
-      "src": "gateway.js",
+      "src": "/gateway.js",
       "use": "@now/node",
       "config": {
         "includeFiles": [
@@ -85,7 +86,6 @@ $ now login
   "routes": [
     {
       "src": "/(.*)",
-      "methods": ["HEAD", "GET"],
       "dest": "/gateway.js"
     }
   ]
@@ -140,7 +140,7 @@ module.exports = gateway.createHttpServer();
 ### 部署
 
 ```bash
-$ now
+$ now --prod
 ```
 
 如果不出意外你会看到如图的信息，高亮的 URL 即为云函数服务的访问地址。
@@ -153,41 +153,39 @@ $ now
 https://xxxxxx.xxx.now.sh/get-artifact/
 ```
 
-最后，再运行一次 `now` 更新服务。
+最后，再运行一次
+
+```bash
+$ now --prod
+```
+
+更新服务。
 
 ### 使用
 
-在以下地址能看到所有 Artifact，方便你使用下载。
-
-#### 未开启鉴权
-
-```
-https://xxxxxx.xxx.now.sh/list-artifact
-```
-
-#### 开启鉴权
-
-```
-https://xxxxxx.xxx.now.sh/list-artifact?access_token=YOUR_PASSWORD
-```
-
-![](./images/api-gateway-preview.png)
-
-#### 特性
-
-- 若名称中包含 `surge`（大小写不敏感），则会出现添加到 Surge 的按钮。
-- 若名称中包含 `clash`（大小写不敏感），则会出现添加到 ClashX/CFW 的按钮。
-- 若项目下的 `package.json` 有 `repository` 字段，则支持直接跳转到 GitLab 或 GitHub 编辑对应文件。
+:::tip 移步至
+[托管 API 的功能介绍](/guide/api.md)
+:::
 
 ### 最后
 
 有几点需要大家注意的：
 
-1. 每一次更新本地的代码，都需要执行一次 `now`，保证远端和本地代码一致
-2. 访问日志、监控、域名绑定等复杂功能恕不提供教程
-3. 如果访问地址泄漏，请立即删除云函数然后修改机场密码
+1. 每一次更新本地的代码，都需要执行一次 `now`，保证远端和本地代码一致；
+2. 访问日志、监控、域名绑定等复杂功能恕不提供教程；
+3. 如果访问地址泄漏，请立即删除云函数然后修改机场密码；
+4. 由于免费用户单次请求的超时时间为 10s，所以不建议使用过多的远程片段、较高的超时时间和重试机制。你可以在 `now.json` 中加入以下的环境变量缓解遇到 Vercel 超时报错的概率：
 
-## 部署 - 阿里云函数
+   ```json
+   {
+     "env": {
+       "SURGIO_NETWORK_RETRY": 0,
+       "SURGIO_NETWORK_TIMEOUT": "5000"
+     }
+   }
+   ```
+
+## 部署 - 阿里云函数 <Badge text="即将废弃" vertical="middle" type="error" />
 
 首先需要确保本地 Surgio 版本已经更新到 v0.12.4 或更新。
 

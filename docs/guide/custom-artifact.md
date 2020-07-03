@@ -49,13 +49,14 @@ Surgio 会根据 Artifact 的值来生成配置文件。你可以一次性配置
 合并其它 Provider。
 
 :::warning 注意
-- 被合并的 Provider 的过滤器中仅 `nodeFilter` 生效。
-- `provider` 定义的主要 Provider 中的过滤器（包括自定义过滤器）会对合并的 Provider 生效。
+由于我们可以在 Provider 中定义属于自己的 `customFilters` 和 `nodeFilter`，它们在合并时需要你注意以下几点：
+- 不论是主 Provider（即 `provider` 定义的 Provider），还是合并进来的 Provider，它们的 `nodeFilter` 只对自身的节点有效；
+- 对于 `customFilters` 来说，只有主 Provider 中定义的才会生效；
 :::
 
 例如：
 
-最终生成的节点配置会包含 `my-provider`, `rixcloud`, `dlercloud` 三个 Provider 的节点。如果 `my-provider` 中定义了过滤器，那这些过滤器对 `rixcloud` 和 `dlercloud` 节点同样有效。
+最终生成的节点配置会包含 `my-provider`, `rixcloud`, `dlercloud` 三个 Provider 的节点。如果 `my-provider` 中有自定义过滤器 `customFilters`，那这些过滤器对 `rixcloud` 和 `dlercloud` 节点同样有效。
 
 ```js
 {
@@ -69,19 +70,47 @@ Surgio 会根据 Artifact 的值来生成配置文件。你可以一次性配置
 - 类型: `object`
 - 默认值: `{}`
 
-自定义的模板对象。可以在模板中获取，方便定义更加定制化的模板。
+自定义的模板变量。可以在模板中获取，方便定制化模板。
 
 例如：
 
 ```js
 {
   customParams: {
-    beta: true
+    beta: true,
+    foo: 'bar',
   },
 }
 ```
 
-此后即可在模板中使用 `{% if customParams.beta %}{% endif %}`，让你仅通过一个模板就能实现多种不同的配置。Nunjucks 的条件语法请参考其文档。
+此后即可在模板中使用 
+
+:::v-pre
+`{{ customParams.foo }}`
+:::
+
+来输出 `foo` 的内容。
+
+你也可以定义布尔值以实现模板中的逻辑判断，比如：
+
+```html
+<!-- .tpl 文件 -->
+{% if customParams.beta %}
+
+{% endif %}
+```
+
+:::tip 提示
+1. 逻辑语句能够让你仅通过一个模板就能实现多种不同的配置。Nunjucks 的条件语法请参考其文档；
+2. 你可以[定义全局的自定义模板变量了](/guide/custom-config.md#customparams)；
+:::
+
+### destDir <Badge text="v1.4.0" vertical="middle" />
+
+- 类型: `string`
+- 默认值: `undefined`
+
+该 Artifact 的生成目录。对于本地管理规则仓库的朋友可能会非常有用，你不再需要人肉复制粘贴了。
 
 ## 方法
 
@@ -92,6 +121,10 @@ Surgio 会根据 Artifact 的值来生成配置文件。你可以一次性配置
 - 类型: `Function`
 - 入参: `(NodeConfig[], { hkFilter, usFilter, netflixFilter, youtubePremiumFilter })`
 - 返回值: `object[]`
+
+:::tip 提示
+[Clash 规则维护指南](/guide/client/clash.md)
+:::
 
 为了解决 Clash 的 `Proxy Group` 组装引入了这个构造函数。在使用 [`clashProxyConfig` 模板变量](/guide/custom-template#clashproxyconfig) 之前必须要自己实现这个方法。
 
@@ -129,7 +162,7 @@ Surgio 会根据 Artifact 的值来生成配置文件。你可以一次性配置
 {
   name: 'US',
   filter: filters.usFilter,
-  type: 'url-test',
+  type: 'url-test', // 支持 'url-test', 'fallback', 'load-balance'
   // proxies: ['Auto'],
 }
 ```
@@ -158,6 +191,6 @@ Surgio 会根据 Artifact 的值来生成配置文件。你可以一次性配置
 {
   name: '🍎 Apple',
   proxies: ['🚀 Proxy', 'US', 'HK'],
-  type: 'url-test',
+  type: 'url-test', // 支持 'url-test', 'fallback', 'load-balance'
 }
 ```

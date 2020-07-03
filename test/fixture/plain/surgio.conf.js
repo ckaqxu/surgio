@@ -1,7 +1,15 @@
 'use strict';
 
+const path = require('path');
+
 module.exports = {
   artifacts: [
+    {
+      name: 'new_path.conf',
+      template: 'test',
+      provider: 'ss_json',
+      destDir: path.join(__dirname, './dist'),
+    },
     {
       name: 'ss_json.conf',
       template: 'test',
@@ -19,7 +27,7 @@ module.exports = {
     },
     {
       name: 'v2rayn.conf',
-      template: 'test',
+      template: 'template-functions',
       provider: 'v2rayn',
     },
     {
@@ -33,10 +41,33 @@ module.exports = {
       provider: 'clash',
     },
     {
+      name: 'clash_mod.conf',
+      template: 'template-functions',
+      provider: 'clash_mod',
+    },
+    {
       name: 'template-functions.conf',
       template: 'template-functions',
       provider: 'ss',
       combineProviders: ['custom', 'ss_json', 'v2rayn', 'clash', 'ssr_with_udp'],
+      customParams: {
+        globalVariableWillBeRewritten: 'barbar',
+        subLevel: {
+          anotherVariableWillBeRewritten: 'another-value',
+        },
+      },
+      proxyGroupModifier() {
+        return [
+          {
+            name: 'auto all',
+            type: 'url-test',
+          },
+          {
+            name: 'select all',
+            type: 'select',
+          },
+        ];
+      },
     },
   ],
   urlBase: 'https://example.com/',
@@ -50,4 +81,17 @@ module.exports = {
   surgeConfig: {
     v2ray: 'native',
   },
+  customFilters: {
+    globalFilter: node => node.nodeName === '测试中文',
+    unused: () => true,
+  },
+  customParams: {
+    globalVariable: 'foo',
+    globalVariableWillBeRewritten: 'bar',
+    subLevel: {
+      anotherVariableWillBeRewritten: 'value',
+    },
+  },
+  proxyTestUrl: 'http://www.google.com/generate_204',
+  proxyTestInterval: 2400,
 };

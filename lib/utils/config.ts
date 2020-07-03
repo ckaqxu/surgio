@@ -2,8 +2,10 @@ import Joi from '@hapi/joi';
 import fs from 'fs-extra';
 import _ from 'lodash';
 import path from 'path';
+import { URL } from 'url';
 
 import { CommandConfig } from '../types';
+import { PROXY_TEST_INTERVAL, PROXY_TEST_URL } from './constant';
 import { ensureConfigFolder } from './index';
 
 export const loadConfig = (cwd: string, configPath: string, override?: Partial<CommandConfig>): CommandConfig => {
@@ -36,18 +38,33 @@ export const normalizeConfig = (cwd: string, userConfig: Partial<CommandConfig>)
     providerDir: path.join(cwd, './provider'),
     configDir: ensureConfigFolder(),
     surgeConfig: {
+      shadowsocksFormat: 'custom',
       v2ray: 'external',
+      resolveHostname: false,
     },
+    proxyTestUrl: PROXY_TEST_URL,
+    proxyTestInterval: PROXY_TEST_INTERVAL,
   };
   const config: CommandConfig = _.defaultsDeep(userConfig, defaultConfig);
 
   // istanbul ignore next
   if (!fs.existsSync(config.templateDir)) {
-    throw new Error(`You must create ${config.templateDir} first.`);
+    throw new Error(`仓库内缺少 ${config.templateDir} 目录`);
   }
   // istanbul ignore next
   if (!fs.existsSync(config.providerDir)) {
-    throw new Error(`You must create ${config.providerDir} first.`);
+    throw new Error(`仓库内缺少 ${config.providerDir} 目录`);
+  }
+
+  if (/http/i.test(config.urlBase)) {
+    const urlObject = new URL(config.urlBase);
+    config.publicUrl = urlObject.origin + '/';
+  } else {
+    config.publicUrl = '/';
+  }
+
+  if (config.binPath && config.binPath.v2ray) {
+    config.binPath.vmess = config.binPath.v2ray;
   }
 
   return config;
@@ -56,12 +73,16 @@ export const normalizeConfig = (cwd: string, userConfig: Partial<CommandConfig>)
 export const validateConfig = (userConfig: Partial<CommandConfig>): void => {
   const artifactSchema = Joi.object({
     name: Joi.string().required(),
+    categories: Joi.array().items(Joi.string()),
     template: Joi.string().required(),
     provider: Joi.string().required(),
     combineProviders: Joi.array().items(Joi.string()),
     customParams: Joi.object(),
     proxyGroupModifier: Joi.function(),
-  });
+    destDir: Joi.string(),
+    downloadUrl: Joi.string(),
+  })
+    .unknown();
   const remoteSnippetSchema = Joi.object({
     url: Joi.string().uri({
       scheme: [
@@ -87,13 +108,32 @@ export const validateConfig = (userConfig: Partial<CommandConfig>): void => {
       vmess: Joi.string().pattern(/^\//),
     }),
     surgeConfig: Joi.object({
-      v2ray: Joi.string().valid('native', 'external')
+      shadowsocksFormat: Joi.string().valid('ss', 'custom'),
+      v2ray: Joi.string().valid('native', 'external'),
+      resolveHostname: Joi.boolean(),
+    }),
+    quantumultXConfig: Joi.object({
+      deviceIds: Joi.array().items(Joi.string()),
     }),
     analytics: Joi.boolean(),
     gateway: Joi.object({
       accessToken: Joi.string(),
       auth: Joi.boolean(),
+      cookieMaxAge: Joi.number(),
+    })
+      .unknown(),
+    proxyTestUrl: Joi.string().uri({
+      scheme: [
+        /https?/,
+      ],
     }),
+    proxyTestInterval: Joi.number(),
+    customFilters: Joi.object()
+      .pattern(
+        Joi.string(),
+        Joi.any().allow(Joi.function(), Joi.object({ filter: Joi.function(), supportSort: Joi.boolean() }))
+      ),
+    customParams: Joi.object(),
   })
     .unknown();
 

@@ -10,12 +10,13 @@
     "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
     "allowSyntheticDefaultImports": true, // https://zhuanlan.zhihu.com/p/29022311
     "resolveJsonModule": true,
+    "experimentalDecorators": true,
 
     // "strict": true /* Enable all strict type-checking options. */,
 
     /* Strict Type-Checking Options */
     // "noImplicitAny": true /* Raise error on expressions and declarations with an implied 'any' type. */,
-    // "strictNullChecks": true /* Enable strict null checks. */,
+    "strictNullChecks": true /* Enable strict null checks. */,
     // "strictFunctionTypes": true /* Enable strict checking of function types. */,
     // "strictPropertyInitialization": true /* Enable strict checking of property initialization in classes. */,
     // "noImplicitThis": true /* Raise error on 'this' expressions with an implied 'any' type. */,
@@ -45,7 +46,7 @@
     ],
     "typeRoots": ["node_modules/@types"]
   },
-  "include": ["lib/**/*.ts", "test/**.ts"],
+  "include": ["lib/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules/**", "**/*.test.ts"],
   "compileOnSave": false
 }

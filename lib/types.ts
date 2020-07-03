@@ -1,21 +1,24 @@
-import Provider from './class/Provider';
+import Provider from './provider/Provider';
 
 export enum NodeTypeEnum {
   HTTPS = 'https',
+  HTTP = 'http',
   Shadowsocks = 'shadowsocks',
   Shadowsocksr = 'shadowsocksr',
   Snell = 'snell',
   Vmess = 'vmess',
+  Trojan = 'trojan',
+  Socks5 = 'socks5',
 }
 
 export enum SupportProviderEnum {
-  BlackSSL = 'blackssl',
-  ShadowsocksJsonSubscribe = 'shadowsocks_json_subscribe',
-  V2rayNSubscribe = 'v2rayn_subscribe',
+  Clash = 'clash',
+  Custom = 'custom',
   ShadowsocksSubscribe = 'shadowsocks_subscribe',
   ShadowsocksrSubscribe = 'shadowsocksr_subscribe',
-  Custom = 'custom',
-  Clash = 'clash',
+  ShadowsocksJsonSubscribe = 'shadowsocks_json_subscribe',
+  V2rayNSubscribe = 'v2rayn_subscribe',
+  BlackSSL = 'blackssl',
 }
 
 export interface CommandConfig {
@@ -23,6 +26,7 @@ export interface CommandConfig {
   readonly artifacts: ReadonlyArray<ArtifactConfig>;
   readonly remoteSnippets?: ReadonlyArray<RemoteSnippetConfig>;
   readonly urlBase: string;
+  publicUrl: string; // tslint:disable-line:readonly-keyword
   readonly providerDir: string;
   readonly templateDir: string;
   readonly configDir: string;
@@ -37,15 +41,27 @@ export interface CommandConfig {
   readonly binPath?: {
     readonly shadowsocksr?: string;
     readonly v2ray?: string;
-    vmess?: string; // tslint:disable-line
+    vmess?: string; // tslint:disable-line:readonly-keyword
   };
   readonly surgeConfig?: {
-    readonly v2ray: 'native'|'external';
+    readonly shadowsocksFormat?: 'ss'|'custom';
+    readonly v2ray?: 'native'|'external';
+    readonly resolveHostname?: boolean;
+  };
+  readonly quantumultXConfig?: {
+    readonly deviceIds?: ReadonlyArray<string>;
   };
   readonly gateway?: {
     readonly accessToken?: string;
-    readonly auth?: boolean;
+    readonly auth?: boolean; // tslint:disable-line:readonly-keyword
+    readonly cookieMaxAge?: number;
   },
+  readonly proxyTestUrl?: string;
+  readonly proxyTestInterval?: number;
+  readonly customFilters?: {
+    readonly [name: string]: NodeNameFilterType|SortedNodeNameFilterType;
+  };
+  readonly customParams?: PlainObjectOf<string|boolean|number>;
 }
 
 export interface RemoteSnippetConfig {
@@ -55,28 +71,36 @@ export interface RemoteSnippetConfig {
 
 export interface RemoteSnippet extends RemoteSnippetConfig {
   readonly main: (rule: string) => string;
+  readonly text: string;
 }
 
 export interface ArtifactConfig {
   readonly name: string;
-  readonly template: string;
+  readonly template: string|undefined;
   readonly provider: string;
   readonly combineProviders?: ReadonlyArray<string>;
+  readonly categories?: ReadonlyArray<string>;
   readonly customParams?: PlainObjectOf<string|boolean|number>;
   readonly proxyGroupModifier?: ProxyGroupModifier;
+  readonly destDir?: string;
+  readonly templateString?: string;
+  readonly downloadUrl?: string;
 }
 
 export interface ProviderConfig {
   readonly type: SupportProviderEnum;
-  readonly nodeFilter?: NodeFilterType;
-  readonly netflixFilter?: NodeNameFilterType;
-  readonly youtubePremiumFilter?: NodeNameFilterType;
+  readonly nodeFilter?: NodeFilterType|SortedNodeNameFilterType;
+  readonly netflixFilter?: NodeNameFilterType|SortedNodeNameFilterType;
+  readonly youtubePremiumFilter?: NodeNameFilterType|SortedNodeNameFilterType;
   readonly startPort?: number;
   readonly customFilters?: {
-    readonly [name: string]: NodeNameFilterType;
+    readonly [name: string]: NodeNameFilterType|SortedNodeNameFilterType;
   };
   readonly addFlag?: boolean;
   readonly tfo?: boolean;
+  readonly mptcp?: boolean;
+  readonly renameNode?: (name: string) => string;
+  readonly relayUrl?: boolean;
 }
 
 export interface BlackSSLProviderConfig extends ProviderConfig {
@@ -101,15 +125,28 @@ export interface ShadowsocksrSubscribeProviderConfig extends ProviderConfig {
 
 export interface V2rayNSubscribeProviderConfig extends ProviderConfig {
   readonly url: string;
+  readonly compatibleMode?: boolean;
+  readonly skipCertVerify?: boolean;
+  readonly udpRelay?: boolean;
+  readonly tls13?: boolean;
 }
 
 export interface ClashProviderConfig extends ProviderConfig {
   readonly url: string;
   readonly udpRelay?: boolean;
+  readonly tls13?: boolean;
 }
 
 export interface CustomProviderConfig extends ProviderConfig {
   readonly nodeList: ReadonlyArray<any>;
+}
+
+export interface HttpNodeConfig extends SimpleNodeConfig {
+  readonly type: NodeTypeEnum.HTTP;
+  readonly hostname: string;
+  readonly port: number|string;
+  readonly username: string;
+  readonly password: string;
 }
 
 export interface HttpsNodeConfig extends SimpleNodeConfig {
@@ -118,6 +155,9 @@ export interface HttpsNodeConfig extends SimpleNodeConfig {
   readonly port: number|string;
   readonly username: string;
   readonly password: string;
+  readonly tls13?: boolean;
+  readonly skipCertVerify?: boolean;
+  readonly sni?: string;
 }
 
 export interface ShadowsocksNodeConfig extends SimpleNodeConfig {
@@ -127,8 +167,13 @@ export interface ShadowsocksNodeConfig extends SimpleNodeConfig {
   readonly method: string;
   readonly password: string;
   readonly 'udp-relay'?: boolean;
-  readonly obfs?: 'tls'|'http';
+  readonly obfs?: 'tls'|'http'|'ws'|'wss';
   readonly 'obfs-host'?: string;
+  readonly 'obfs-uri'?: string;
+  readonly skipCertVerify?: boolean;
+  readonly wsHeaders?: Record<string, string>;
+  readonly tls13?: boolean;
+  readonly mux?: boolean;
 }
 
 export interface SnellNodeConfig extends SimpleNodeConfig {
@@ -137,6 +182,8 @@ export interface SnellNodeConfig extends SimpleNodeConfig {
   readonly port: number|string;
   readonly psk: string;
   readonly obfs: string;
+  readonly 'obfs-host'?: string;
+  readonly version?: string;
 }
 
 export interface ShadowsocksrNodeConfig extends SimpleNodeConfig {
@@ -163,31 +210,80 @@ export interface VmessNodeConfig extends SimpleNodeConfig {
   readonly tls: boolean;
   readonly host?: string;
   readonly path?: string;
-  readonly udp?: boolean;
+  readonly udp?: boolean; // TODO: 统一为 udp-relay
+  readonly tls13?: boolean;
+  readonly skipCertVerify?: boolean;
+  readonly wsHeaders?: Record<string, string>;
+}
+
+export interface TrojanNodeConfig extends SimpleNodeConfig {
+  readonly type: NodeTypeEnum.Trojan;
+  readonly hostname: string;
+  readonly port: number|string;
+  readonly password: string;
+  readonly skipCertVerify?: boolean;
+  readonly alpn?: ReadonlyArray<string>;
+  readonly sni?: string;
+  readonly 'udp-relay'?: boolean;
+  readonly tls13?: boolean;
+}
+
+export interface Socks5NodeConfig extends SimpleNodeConfig {
+  readonly type: NodeTypeEnum.Socks5;
+  readonly hostname: string;
+  readonly port: number|string;
+  readonly username?: string;
+  readonly password?: string;
+  readonly tls?: boolean;
+  readonly skipCertVerify?: boolean;
+  readonly udpRelay?: boolean;
+  readonly sni?: string;
+  readonly clientCert?: string;
 }
 
 export interface SimpleNodeConfig {
   readonly type: NodeTypeEnum;
-  readonly enable?: boolean;
-  readonly tfo?: boolean; // TCP Fast Open
   nodeName: string; // tslint:disable-line
+  readonly enable?: boolean;
+  // tslint:disable-next-line
+  tfo?: boolean; // TCP Fast Open
+  // tslint:disable-next-line
+  mptcp?: boolean; // Multi-Path TCP
   binPath?: string; // tslint:disable-line
   localPort?: number; // tslint:disable-line
   surgeConfig?: CommandConfig['surgeConfig']; // tslint:disable-line
+  hostnameIp?: ReadonlyArray<string>; // tslint:disable-line
+  provider?: Provider; // tslint:disable-line
 }
 
 export interface PlainObject { readonly [name: string]: any }
 export interface PlainObjectOf<T> { readonly [name: string]: T }
 
+export interface CreateServerOptions {
+  readonly cwd?: string;
+}
+
+export interface SubscriptionUserinfo {
+  readonly upload: number;
+  readonly download: number;
+  readonly total: number;
+  readonly expire: number;
+}
+
 export type NodeFilterType = (nodeConfig: PossibleNodeConfigType) => boolean;
 
 export type NodeNameFilterType = (simpleNodeConfig: SimpleNodeConfig) => boolean;
 
-export type PossibleNodeConfigType = HttpsNodeConfig|ShadowsocksNodeConfig|ShadowsocksrNodeConfig|SnellNodeConfig|VmessNodeConfig;
+export interface SortedNodeNameFilterType {
+  readonly filter: <T>(nodeList: ReadonlyArray<T & SimpleNodeConfig>) => ReadonlyArray<T & SimpleNodeConfig>;
+  readonly supportSort?: boolean;
+}
 
-export type ProxyGroupModifier = (nodeList: ReadonlyArray<PossibleNodeConfigType>, filters: PlainObjectOf<NodeNameFilterType>) => ReadonlyArray<{
+export type PossibleNodeConfigType = HttpsNodeConfig|HttpNodeConfig|ShadowsocksNodeConfig|ShadowsocksrNodeConfig|SnellNodeConfig|VmessNodeConfig|TrojanNodeConfig|Socks5NodeConfig;
+
+export type ProxyGroupModifier = (nodeList: ReadonlyArray<PossibleNodeConfigType>, filters: PlainObjectOf<NodeNameFilterType|SortedNodeNameFilterType>) => ReadonlyArray<{
   readonly name: string;
-  readonly type: 'select' | 'url-test';
+  readonly type: 'select'|'url-test'|'fallback'|'load-balance';
   readonly proxies?: ReadonlyArray<string>;
   readonly filter?: NodeNameFilterType;
 }>;

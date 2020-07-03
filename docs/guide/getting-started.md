@@ -11,7 +11,7 @@ title: 快速上手
 
 ## 安装 Node.js
 
-:::tip
+:::tip 提示
 如果已安装可跳过
 :::
 
@@ -46,7 +46,7 @@ Surgio 根据模板来渲染指定的文件。
 
 Surgio 生成出的规则就是「产品」。
 
-:::tip
+:::tip 提示
 以上三者的关系简单来说就是：Surgio 根据 Artifact 的定义将 Provider 的节点用 Template 生成出来可用的配置。
 :::
 
@@ -74,7 +74,7 @@ npx surgio generate
 
 规则已经生成到 `dist` 目录了。
 
-<img src="/generate-result.png" width="318">
+<img src="./images/generate-result.png" width="318">
 
 ## 上传规则
 
@@ -92,6 +92,16 @@ npm run update
 请确保已配置阿里云 OSS。
 :::
 
+## 如何自定义
+
+推荐想使用 Surgio 的朋友先熟悉一下三大件 Artifact, Provider 和 Template 分别包含什么功能再尝试自定义。
+
+Surgio 提供了一个新建组件的助手命令，你可以通过它来初始化想要的组件。
+
+```bash
+npx surgio new artifact|provider|template
+```
+
 ## 样例
 
 除了你使用 init 命令生成的初始仓库之外，你还可以在 [这里](https://github.com/geekdada/surgio/tree/master/examples) 找到其它使用样例。
@@ -101,7 +111,7 @@ npm run update
 确保你当前的版本和新版没有兼容性问题后，运行下面命令即可。
 
 ```bash
-npm install surgio@latest --save
+npm install surgio@latest
 ```
 
 ## 配置文件
